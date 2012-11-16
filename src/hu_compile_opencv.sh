@@ -1,7 +1,7 @@
 # check argument number
 if [ $# -eq 0 ] || [ $# -gt 1 ]
 then
-  echo "error: only one argument expected"
+  echo "exit: expect one argument"
   exit
 fi
 
