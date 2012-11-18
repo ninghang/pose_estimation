@@ -37,3 +37,7 @@ fi
 # run executable
 echo "running..."
 ./$base
+if [ $? -eq 0 ]
+then
+  echo "running done"
+fi
