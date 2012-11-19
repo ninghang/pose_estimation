@@ -11,7 +11,7 @@ int main(int, char** argv)
 {
   string res_folder = "../res/";
 
-  bool isSave = true;
+  bool isSave = false;
   string out_folder = res_folder + "human_images/";
   string frame_folder = res_folder + "frame_images/";
   string data_file = res_folder + "data.xml";
@@ -126,12 +126,12 @@ int main(int, char** argv)
       Point2f vertices[4];
       rot_rect.points(vertices);
       for (int j = 0; j < 4; j++)
-        line(view, vertices[i], vertices[(i+1)%4], Scalar(0,255,0));
+        line(view, vertices[j], vertices[(j+1)%4], Scalar(0,255,0));
       circle(view, image_center, 5,Scalar(0,0,255));
       circle(view, human_location, 5,Scalar(255,255,0));
       line(view,image_center,rect_center,Scalar(0,0,255));
       namedWindow("view",CV_WINDOW_NORMAL);
-      imshow("view",im);
+      imshow("view",view);
       namedWindow("view2",CV_WINDOW_NORMAL);
       imshow("view2",cropped);
       waitKey(0);
