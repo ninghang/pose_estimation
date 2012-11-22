@@ -1,43 +1,44 @@
 # check argument number
 if [ $# -eq 0 ] || [ $# -gt 1 ]
 then
-  echo "exit: expect one argument"
-  exit
+echo "exit: expect one argument"
+exit
 fi
 
 # find file extension
-file=$1
-ext="${file##*.}"
+filename=$1
+base="${filename%.*}"
+ext="${filename##*.}"
 
-if [ ! -z $ext ]
+if [ -n $ext ]
 then
-  file="$1.cpp"
+ext="cpp"
 fi
 
-# attach extension if missing
-ext="${file##*.}"
-base="${file%.*}"
+# reject if not cpp
 if [ "$ext" != "cpp" ]
 then
-  echo "unable to compile .$ext for now"
-  exit
+echo "unable to compile .$ext for now"
+exit
 fi
+
+filename=$base.$ext
 
 # compile file
-echo "compiling $file..."
-g++ -o $base $file $(pkg-config --libs --cflags opencv)
-if [ $? -gt 0 ]
-then
+  echo "compiling $filename..."
+g++ -o $base $filename $(pkg-config --libs --cflags opencv)
+  if [ $? -gt 0 ]
+  then
   echo "compile failed"
   exit
-else
+  else
   echo "compile done"
-fi
+  fi
 
 # run executable
-echo "running..."
-./$base
-if [ $? -eq 0 ]
-then
+  echo "running..."
+  ./$base
+  if [ $? -eq 0 ]
+  then
   echo "running done"
-fi
+  fi
