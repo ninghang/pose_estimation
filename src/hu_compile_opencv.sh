@@ -1,8 +1,8 @@
 # check argument number
 if [ $# -eq 0 ] || [ $# -gt 1 ]
 then
-echo "exit: expect one argument"
-exit
+  echo "exit: expect one argument"
+  exit
 fi
 
 # find file extension
@@ -12,33 +12,34 @@ ext="${filename##*.}"
 
 if [ -n $ext ]
 then
-ext="cpp"
+  ext="cpp"
 fi
 
 # reject if not cpp
 if [ "$ext" != "cpp" ]
 then
-echo "unable to compile .$ext for now"
-exit
+  echo "unable to compile .$ext for now"
+  exit
 fi
 
 filename=$base.$ext
 
 # compile file
-  echo "compiling $filename..."
-g++ -o $base $filename $(pkg-config --libs --cflags opencv)
-  if [ $? -gt 0 ]
-  then
+echo "compiling $filename..."
+g++ -o $base $filename $(pkg-config --libs --cflags opencv) -lboost_program_options
+
+if [ $? -gt 0 ]
+then
   echo "compile failed"
   exit
-  else
+else
   echo "compile done"
-  fi
+fi
 
 # run executable
-  echo "running..."
-  ./$base
-  if [ $? -eq 0 ]
-  then
+echo "running..."
+./$base
+if [ $? -eq 0 ]
+then
   echo "running done"
-  fi
+fi
