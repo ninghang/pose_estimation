@@ -1,3 +1,6 @@
+# timeout time
+t=1800
+
 # set path
 res_path=~/workspace/pose_estimation/res
 
@@ -41,9 +44,9 @@ do
       # retopic video 
       python ~/workspace/pose_estimation/src/retopicBag.py $vid_path/$vid $vid_path/${base}-retopic.bag /$cam
     fi
-echo $vid_path/${base}_retopic.bag
+
     # localization
-    roslaunch accompany_uva save_all_results_test.launch param_path:=/home/ninghang/workspace/ros/accompany/accompany_uva/res/testRobotHouse/$cam video_file:=$vid_path/${base}-retopic.bag dst_path:=$frame_path/$base camera:=$cam camera:=$cam
+    timeout $t roslaunch accompany_uva save_all_results_test.launch param_path:=/home/ninghang/workspace/ros/accompany/accompany_uva/res/testRobotHouse/$cam video_file:=$vid_path/${base}-retopic.bag dst_path:=$frame_path/$base camera:=$cam camera:=$cam
 
   done
 done
