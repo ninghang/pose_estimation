@@ -1,0 +1,27 @@
+<launch>
+
+  <!-- image topics to subscribe -->
+  <arg name="topic_fisheye1" value="/fisheye1/gscam/image_color" />
+  <arg name="topic_fisheye2" value="/fisheye2/gscam/image_color" />
+  <arg name="topic_kinect"   value="/camera/rgb/image_color" />
+
+  <!-- path to save image frames -->
+  <arg name="path_fisheye1" />
+  <arg name="path_fisheye2" />
+  <arg name="path_kinect" />
+
+
+  <!-- time machien -->
+  <param name="/use_sim_time" value="True" />
+
+  <!-- convert video to frames -->
+  <node pkg="accompany_static_camera_localisation" type="image_saver" name="saver_fisheye1"
+        args="-n 0 -t $(arg topic_fisheye1) -p $(arg path_fisheye1) "/>
+
+  <node pkg="accompany_static_camera_localisation" type="image_saver" name="saver_fisheye2"
+        args="-n 0 -t $(arg topic_fisheye2) -p $(arg path_fisheye2) "/>
+
+  <node pkg="accompany_static_camera_localisation" type="image_saver" name="saver_kinect"
+        args="-n 0 -t $(arg topic_kinect) -p $(arg path_kinect) "/>
+
+</launch>
