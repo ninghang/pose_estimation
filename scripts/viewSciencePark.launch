@@ -7,15 +7,18 @@
   <arg name="res_fisheye1" value="/media/Hitachi/ScienceParkNewData/fisheye1/res" />
   <arg name="res_fisheye2" value="/media/Hitachi/ScienceParkNewData/fisheye2/res" />
   <arg name="res_kinect" value="/media/Hitachi/ScienceParkNewData/kinect/res" />
+  <arg name="rate_factor" value="1"/>
+
 
   <!-- time machien -->
   <param name="/use_sim_time" value="True" />
 
   <!-- play videos -->
   <node pkg="rosbag" type="play" name="play_video"
-        args="-l --clock $(arg vid1) $(arg vid2) $(arg vid3)" />
+        args="-l -r $(arg rate_factor) --clock $(arg vid1) $(arg vid2) $(arg vid3)" />
 
-  <!-- create tf bridges for kinect -->
+
+  <!-- tf of kinect -->
   <node pkg="tf" type="static_transform_publisher" name="openni_tracker_tf"
         args="0 0 0 0 0 0 /camera_depth_frame /openni_depth_frame 100"/>
 
@@ -23,12 +26,13 @@
   <node pkg="accompany_static_camera_localisation" type="publish_tf_from_extrinsic" name="kinect_tf"
         args="-p camera_rgb_optical_frame -c world -e $(arg res_kinect)/camera_extrinsic.xml -r"/>
 
-  <!-- tf of world and fisheye cameras -->
+  <!-- tf of world and fisheye -->
   <node pkg="accompany_static_camera_localisation" type="publish_tf_from_extrinsic" name="fisheye1_tf"
         args="-p world -c fisheye1_optical_frame -e $(arg res_fisheye1)/camera_extrinsic.xml"/>
   <node pkg="accompany_static_camera_localisation" type="publish_tf_from_extrinsic" name="fisheye2_tf"
         args="-p world -c fisheye2_optical_frame -e $(arg res_fisheye2)/camera_extrinsic.xml"/>
-  
+
+
   <!-- decode fisheye1 -->
   <node pkg="image_transport" type="republish" name="republishfisheye1"
         args="compressed in:=/fisheye1/gscam/image_raw raw out:=/fisheye1/gscam/image_raw" />
@@ -44,5 +48,6 @@
   <!-- decode kinect -->
   <node pkg="image_transport" type="republish" name="republishkinect"
         args="compressed in:=/camera/rgb/image_raw raw out:=/camera/rgb/image_raw" />
-  
+
+
 </launch>

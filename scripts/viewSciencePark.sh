@@ -23,7 +23,7 @@ do
     for vid in $vidlist
     do
         vidbase="${vid%.*}"
-        
+
         if [ -f ${vidbase}-retopic.bag ]
         then
             echo ${vidbase}-retopic.bag exist. skip.
@@ -51,6 +51,7 @@ echo starting video $vid_idx of $num
 if [ $num -lt $vid_idx ]
 then
     echo error: maximal $num videos, get $vid_idx
+    exit
 else
     vid_idx=$(expr $vid_idx - 1)
     vid1=${arr1[$vid_idx]}
