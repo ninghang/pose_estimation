@@ -35,6 +35,11 @@ do
     done
 done
 
+# looking for time shift for synchronization
+sync_path="/media/Hitachi/ScienceParkNewData/timeDiffInfo.txt"
+c_fisheye1=`awk 'NR==var1 {print $1}' var1="$vid_idx" $sync_path`
+c_fisheye2=`awk 'NR==var1 {print $2}' var1="$vid_idx" $sync_path`
+
 # play videos
 
 list1=`ls $cam1/*retopic.bag`
@@ -66,8 +71,7 @@ else
     vid3base="${vid3%.*}"
 
     mkdir -p $vid1base $vid2base $vid3base
-    echo $vid1base
 
-    roslaunch saveSciencePark.launch vid1:=$vid1 vid2:=$vid2 vid3:=$vid3 path_fisheye1:=$vid1base path_fisheye2:=$vid2base path_kinect:=$vid3base
+    roslaunch saveSciencePark.launch vid1:=$vid1 vid2:=$vid2 vid3:=$vid3 path_fisheye1:=$vid1base path_fisheye2:=$vid2base path_kinect:=$vid3base compensate_fisheye1:=$c_fisheye1 compensate_fisheye2:=$c_fisheye2
 
 fi

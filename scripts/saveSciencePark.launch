@@ -10,7 +10,10 @@
   <arg name="res_fisheye1" value="/media/Hitachi/ScienceParkNewData/fisheye1/res" />
   <arg name="res_fisheye2" value="/media/Hitachi/ScienceParkNewData/fisheye2/res" />
   <arg name="res_kinect" value="/media/Hitachi/ScienceParkNewData/kinect/res" />
-  <arg name="rate_factor" value="1"/>
+  <arg name="rate_factor" value="0.4"/>
+  <arg name="frame_ids" value="/head_1 /neck_1 /torso_1 /left_shoulder_1 /left_elbow_1 /left_hand_1 /right_shoulder_1 /right_elbow_1 /right_hand_1 /left_hip_1 /left_knee_1 /left_foot_1 /right_hip_1 /right_knee_1 /right_foot_1"/>
+  <arg name="compensate_fisheye1"/>
+  <arg name="compensate_fisheye2"/>
 
 
   <!-- time machien -->
@@ -48,20 +51,26 @@
   <node pkg="image_proc" type="image_proc" name="imgprocfisheye2"
         ns="/fisheye2/gscam" /> <!--create undistorted image-->
 
+  <!-- save skeletons to xml -->
+  <node pkg="accompany_static_camera_localisation" type="project_tf_to_camera" name="save_skeleton_fisheye1"
+        args="-f $(arg frame_ids) -t /fisheye1/gscam/image_color -c $(arg compensate_fisheye1) -s $(arg path_fisheye1)/skeletons.yaml" />
+  <node pkg="accompany_static_camera_localisation" type="project_tf_to_camera" name="save_skeleton_fisheye2"
+        args="-f $(arg frame_ids) -t /fisheye2/gscam/image_color -c $(arg compensate_fisheye2) -s $(arg path_fisheye2)/skeletons.yaml" />
+
   <!-- decode kinect -->
-  <node pkg="image_transport" type="republish" name="republishkinect"
-        args="compressed in:=/camera/rgb/image_raw raw out:=/camera/rgb/image_raw" />
+  <!-- <node pkg="image_transport" type="republish" name="republishkinect" -->
+  <!--       args="compressed in:=/camera/rgb/image_raw raw out:=/camera/rgb/image_raw" /> -->
 
   <!-- save video to frames -->
-  <include file="/home/ninghang/workspace/pose_estimation/scripts/convertFrames.launch">
-     <arg name="path_fisheye1" value="$(arg path_fisheye1)" />
-     <arg name="path_fisheye2" value="$(arg path_fisheye2)" />
-     <arg name="path_kinect" value="$(arg path_kinect)" />
-  </include>
+  <!-- <include file="/home/ninghang/workspace/pose_estimation/scripts/convertFrames.launch"> -->
+  <!--    <arg name="path_fisheye1" value="$(arg path_fisheye1)" /> -->
+  <!--    <arg name="path_fisheye2" value="$(arg path_fisheye2)" /> -->
+  <!--    <arg name="path_kinect" value="$(arg path_kinect)" /> -->
+  <!-- </include> -->
 
   <!-- decode and view camera2 (kinect) -->
-  <include file="$(find openni_launch)/launch/openni.launch">
-    <arg name="load_driver" value="false" />
-  </include>
+  <!-- <include file="$(find openni_launch)/launch/openni.launch"> -->
+  <!--   <arg name="load_driver" value="false" /> -->
+  <!-- </include> -->
 
 </launch>
