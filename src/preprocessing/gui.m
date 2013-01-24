@@ -1,122 +1,128 @@
 function varargout = gui(varargin)
-
-% Begin initialization code - DO NOT EDIT
-gui_Singleton = 1;
-gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @gui_OpeningFcn, ...
-                   'gui_OutputFcn',  @gui_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
-if nargin && ischar(varargin{1})
+  
+  % Begin initialization code - DO NOT EDIT
+  gui_Singleton = 1;
+  gui_State = struct('gui_Name',       mfilename, ...
+    'gui_Singleton',  gui_Singleton, ...
+    'gui_OpeningFcn', @gui_OpeningFcn, ...
+    'gui_OutputFcn',  @gui_OutputFcn, ...
+    'gui_LayoutFcn',  [] , ...
+    'gui_Callback',   []);
+  if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
-end
-
-if nargout
+  end
+  
+  if nargout
     [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
-else
+  else
     gui_mainfcn(gui_State, varargin{:});
+  end
+  % End initialization code - DO NOT EDIT
 end
-% End initialization code - DO NOT EDIT
-
 
 % --- Executes just before gui is made visible.
 function gui_OpeningFcn(hObject, eventdata, handles, varargin)
-
+  
   % Choose default command line output for gui
   handles.output = hObject;
-
+  
   % Update handles structure
   guidata(hObject, handles);
-
-  % INIT
-%   camFolder = '/media/Hitachi/ScienceParkNewData/fisheye2';
-  global id pa points imls colors ts vidFolderIdx camFolder;
   
+  %%%%%%%%%% INIT %%%%%%%%%%%%%
+  %   camFolder = '/media/Hitachi/ScienceParkNewData/fisheye2';
+  clear data ph;
+  global data ph;
   vidFolderIdx = 5;
   camFolder = '/media/Hitachi/ScienceParkNewData/fisheye1';
-  id = 1;
-  pa = [0 1 2 2 4 5 2 7 8 3 10 11 3 13 14]; % tree
-  colors = 'rrrbbbgggyyyccc'; % skeleton colors
-  [points,imls,ts] = loadData(camFolder,vidFolderIdx);
-  annotateSkeleton;
-  
-  %%%
+  data = ScienceParkData(camFolder,vidFolderIdx);
+  ph = visualizeSkeleton(data);
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+end
 
 % --- Outputs from this function are returned to the command line.
-function varargout = gui_OutputFcn(hObject, eventdata, handles) 
-varargout{1} = handles.output;
-
+function varargout = gui_OutputFcn(hObject, eventdata, handles)
+  varargout{1} = handles.output;
+end
 
 
 % --- Executes on selection change in pushbutton_next.
 function pushbutton_next_Callback(hObject, eventdata, handles)
-  global id ph points imls ts camFolder vidFolderIdx;
+  global data ph
+  
   % update current points
   for i = 1:length(ph)
     p = ph{i}.getPosition;
-    points(id,1,i) = p(1);
-    points(id,2,i) = p(2);
+    data.Points(data.Now,1,i) = p(1);
+    data.Points(data.Now,2,i) = p(2);
   end
-  filename = fprintf('%d.mat',vidFolderIdx);
-  save(filename,'points','imls','ts', 'id','camFolder','vidFolderIdx')
+  save(sprintf('%d.mat',data.VidFolderIdx),'data')
   
   % remove skipped frames
-  if id + 10  > size(points,1)
-    d = size(points,1);
+  if data.Now + 10  > size(data.Points,1)
+    d = size(data.Points,1);
   else
-    d = id + 10;
+    d = data.Now + 10;
   end
-  points(id+1 : d,:,:) = [];
-  imls(id+1 : d,:) = [];
-  ts(id+1 : d,:) = [];
-  if id == size(points,1) 
-    disp('Annotating reached the end of the video');
-    fprintf('%d / %d', id, size(points,1));
-    filename = fprintf('%d.mat',vidFolderIdx);
-    save(filename,'points','imls','ts', 'id','camFolder','vidFolderIdx');
+  data.Points(data.Now+1 : d,:,:) = [];
+  data.Imagelist(data.Now+1 : d,:) = [];
+  data.Timestamp(data.Now+1 : d,:) = [];
+  if data.Now == size(data.Points,1)
+    disp('Video all finished. Done.');
+    info(data);
+    save(sprintf('%d.mat',vidFolderIdx),'data');
     return
   else
-    % go to next frame
-    fprintf('%d / %d', id, size(points,1))
-    id = id + 1;
-    annotateSkeleton;
+    % go to the next frame
+    info(data);
+    data.Now = data.Now + 1;
+    ph = visualizeSkeleton(data);
   end
+end
 
 % --- Executes on button press in pushbutton_redo.
 function pushbutton_redo_Callback(hObject, eventdata, handles)
-  global id points;
-  fprintf('%d / %d', id, size(points,1))
-  annotateSkeleton;
-  
+  global data ph;
+  info(data)
+  ph = visualizeSkeleton(data);
+end
+
 % --- Executes on button press in pushbutton_skip.
 function pushbutton_skip_Callback(hObject, eventdata, handles)
   
-  global id points imls ts;
+  global data ph;
   
-  % remove skipped frames
-  points(id,:,:) = [];
-  imls(id,:) = [];
-  ts(id,:) = [];
-
-%   id = id + 1;
-  fprintf('%d / %d', id, size(points,1))
-  annotateSkeleton;
-
-
+  % remove current frames
+  data.Points(data.Now,:,:) = [];
+  data.Imagelist(data.Now,:) = [];
+  data.Timestamp(data.Now,:) = [];
+  
+  info(data);
+  ph = visualizeSkeleton(data);
+  
+end
 % --- Executes on button press in pushbutton_save.
 function pushbutton_save_Callback(hObject, eventdata, handles)
-    
-  global id points imls ts camFolder vidFolderIdx;
+  
+  global data;
   time = clock;
-  filename = fprintf('%d_%d%02d%02d%02d%02d.mat',vidFolderIdx,time(1),time(2),time(3),time(4),time(5));
-  save(filename,'points','imls','ts', 'id','camFolder','vidFolderIdx')
-
-
+  filename = sprintf('%d_%d%02d%02d%02d%02d.mat',data.VidFolderIdx,time(1),time(2),time(3),time(4),time(5));
+  save(filename,'data')
+  
+end
 % --- Executes on button press in pushbutton_load.
 function pushbutton_load_Callback(hObject, eventdata, handles)
-  global points id
+  global data ph
   filename = input('specify the .mat file to load\n', 's');
-  load(filename);
-  fprintf('%d / %d', id, size(points,1))
-  annotateSkeleton;
+  if isempty(load(filename))
+    error('Unable to read file %s: No such file or directory',filename)
+  end
+  info(data)
+  ph = visualizeSkeleton(data);
+end
+
+function info(data)
+  str = sprintf('%d / %d', data.Now, size(data.Points,1));
+  disp(str);
+end
+
