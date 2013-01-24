@@ -112,17 +112,45 @@ function pushbutton_save_Callback(hObject, eventdata, handles)
 end
 % --- Executes on button press in pushbutton_load.
 function pushbutton_load_Callback(hObject, eventdata, handles)
+  clear data ph
   global data ph
   filename = input('specify the .mat file to load\n', 's');
-  if isempty(load(filename))
-    error('Unable to read file %s: No such file or directory',filename)
+  load(filename)
+  str = input('From which frame to start? (default - value in the data)\n', 's');
+  if ~isempty(str)
+    data.Now = str2double(str);
   end
   info(data)
   ph = visualizeSkeleton(data);
+end
+
+% --- Executes on button press in pushbutton_Check.
+function pushbutton_Check_Callback(hObject, eventdata, handles)
+  
+  global ph data
+  
+  % update current points
+  for i = 1:length(ph)
+    p = ph{i}.getPosition;
+    data.Points(data.Now,1,i) = p(1);
+    data.Points(data.Now,2,i) = p(2);
+  end
+  save(sprintf('%d.mat',data.VidFolderIdx),'data')
+  
+  if data.Now == size(data.Points,1)
+    disp('Video all finished. Done.');
+    info(data);
+    save(sprintf('%d.mat',vidFolderIdx),'data');
+    return
+  else
+    % go to the next frame
+    info(data);
+    data.Now = data.Now + 1;
+    ph = visualizeSkeleton(data);
+  end
 end
 
 function info(data)
   str = sprintf('%d / %d', data.Now, size(data.Points,1));
   disp(str);
 end
-
