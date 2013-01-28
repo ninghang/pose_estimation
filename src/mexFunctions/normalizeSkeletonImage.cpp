@@ -5,21 +5,45 @@
 #include <stdlib.h>
 
 /*
+ * Print usuage of the function
+ */
+void printUsage()
+{
+  mexPrintf(
+      "Usage: [NormSkelPoints,image] = normSkeletonPoints(skelPoints,imagePath)");
+}
+
+/*
  * Check input and output arguments
  */
 void checkInputOutput(int nrhs, int nlhs, const mxArray* prhs[])
 {
   /* check proper input and output */
   if (nrhs != 2)
+  {
+    printUsage();
     mexErrMsgIdAndTxt("MATLAB:normSkeletonPoints:invalidNumInputs",
         "Two input required.");
+  }
   else if (nlhs != 2)
+  {
+    printUsage();
+
     mexErrMsgIdAndTxt("MATLAB:normSkeletonPoints:maxlhs",
         "Two output arguments.");
+  }
   else if (!mxIsChar(prhs[1]))
+  {
+    printUsage();
+
     mexErrMsgTxt("The second input must be a string");
+  }
   else if (mxIsNumeric(prhs[0]) && mxGetNumberOfDimensions(prhs[0]) != 2)
+  {
+    printUsage();
+
     mexErrMsgTxt("Skeleton points must be a 2D matrix");
+  }
 }
 
 /*
@@ -38,30 +62,35 @@ void loadImage(const mxArray* prhs[], cv::Mat& im)
 
 /*
  * Rotate and translate to normalized skeletons points
+ *  compute coorindate frame of the human rectangle - size, center, rotation
+ *  rotate the image by the center so that the human is up-right
+ *  crop the image at the rotated human image
+ *  project points to the new human image
  */
 void normalizeSkeletonImage(cv::Mat points, cv::Mat im, cv::Mat& cropped,
     cv::Mat& tfPoints)
 {
-  const int shift = 50;
+  const int shift = 50; // make sure to see the whole parts on the edge
+
   cv::Point2d head_location;
   head_location.x = points.at<double>(0, 0);
   head_location.y = points.at<double>(0, 1);
 
   cv::Point2d image_center(im.cols / 2, im.rows / 2); // NOTE: x goes along columns! TODO
 
-  // direction vector from image center to head location
-  cv::Point2d direction = head_location - image_center;
-  direction = direction * (1 / norm(direction)); // unit direction vector: image center -> human location
+  // rectangle coordinate frame
+  cv::Point2d imFrameY = head_location - image_center;
+  imFrameY = imFrameY * (1 / norm(imFrameY)); // unit direction vector: image center -> head location
+  cv::Point2d imFrameX(imFrameY.y, imFrameY.x * -1);
 
-  // project skeleton points onto directional vector
+  // project skeleton points into rectangle frame
   cv::Mat projection_matrix = cv::Mat::zeros(2, 1, CV_64FC2);
-  projection_matrix.at<cv::Point2d>(0, 0) = direction;
-  cv::Point2d direction2(direction.y, direction.x * -1);
-  projection_matrix.at<cv::Point2d>(1, 0) = direction2;
+  projection_matrix.at<cv::Point2d>(0, 0) = imFrameY;
+  projection_matrix.at<cv::Point2d>(1, 0) = imFrameX;
   projection_matrix = projection_matrix.reshape(1).t();
   cv::Mat projected_points = points * projection_matrix;
 
-  // width and height of human rectangle
+  // human rectangle: size
   cv::Mat pnts_x = projected_points.col(0);
   cv::Mat pnts_y = projected_points.col(1);
   double max_x, min_x, max_y, min_y;
@@ -69,42 +98,42 @@ void normalizeSkeletonImage(cv::Mat points, cv::Mat im, cv::Mat& cropped,
   minMaxLoc(pnts_y, &min_y, &max_y);
   double rect_width = max_y - min_y;
   double rect_height = max_x - min_x;
+  cv::Size2f rect_size(rect_width + shift, rect_height + shift);
 
-  // center of the human rectangle
-  double scale_human = (max_x + min_x) / 2;
-  double scale_image_center = image_center.dot(direction);
-  double scale = scale_human - scale_image_center;
-  cv::Point2f rect_center = scale * direction + image_center;
+  // human rectangle: center
+  double projHeadX = pnts_x.at<double>(0, 0);
+  double projHeadY = pnts_y.at<double>(0, 0);
+  // project points back to image frame
+  cv::Point2d p1 = (max_x - projHeadX) * imFrameY
+      + (max_y - projHeadY) * imFrameX; // top-left
+  cv::Point2d p2 = (min_x - projHeadX) * imFrameY
+      + (min_y - projHeadY) * imFrameX; // bottom-right
+  cv::Point2d rect_center = (p1 + p2) * .5 + head_location; // rectangle center in image frame
 
-  // rotation of the human rectangle
+  // human rectangle: rotation
   cv::Point2d vertical_norm(0, -1);
-  double angle_rad = acos(direction.dot(vertical_norm));
+  double angle_rad = acos(imFrameY.dot(vertical_norm));
   double angle_deg = angle_rad / CV_PI * 180;
   cv::Mat m1, m2;
   m1.push_back(cv::Point3d(vertical_norm.x, vertical_norm.y, 0));
-  m2.push_back(cv::Point3d(direction.x, direction.y, 0));
+  m2.push_back(cv::Point3d(imFrameY.x, imFrameY.y, 0));
   cv::Mat cross_mat = m1.cross(m2);
   if (cross_mat.at<cv::Point3d>(0, 0).z < 0)
     // rotate counter-clockwise
     angle_deg *= -1;
 
-  // construct rotated human rectangle that fit the personen
-  // enlarged with a shift
-  cv::RotatedRect rot_rect(rect_center,
-      cv::Size2f(rect_width + shift, rect_height + shift), angle_deg);
-
   // rotate image by the center of the rectangle
   cv::Mat rotated;
-  cv::Mat M = getRotationMatrix2D(rot_rect.center, angle_deg, 1.0);
+  cv::Mat M = getRotationMatrix2D(rect_center, angle_deg, 1.0);
   cv::warpAffine(im, rotated, M, im.size(), cv::INTER_CUBIC); // TODO: set image roi
 
   // crop human image at the rectangle
-  getRectSubPix(rotated, rot_rect.size, rot_rect.center, cropped); // crop
+  getRectSubPix(rotated, rect_size, rect_center, cropped); // crop
 
   // transformed points
   cv::Point2d origin;
-  origin.x = rot_rect.center.x - rot_rect.size.width / 2;
-  origin.y = rot_rect.center.y - rot_rect.size.height / 2;
+  origin.x = rect_center.x - rect_size.width / 2;
+  origin.y = rect_center.y - rect_size.height / 2;
 
   cv::transform(points.reshape(2), tfPoints, M);
   tfPoints = tfPoints.reshape(1);
