@@ -1,15 +1,19 @@
 function ph = visualizeSkeleton(data)
   
   pa = [0 1 2 2 4 5 2 7 8 3 10 11 3 13 14]; % tree
-  colors = 'rrrbbbgggyyyccc'; % skeleton colors
+  colorset = 'rrrbbbgggyyyccc'; % skeleton colors
+  
+  if nargin ~= 1
+    error('One input argument expected. [ScienceParkData]');
+  end
+  
+  idx = data.Now;
+  im = data.Imagelist{idx};
+  pts = squeeze(data.Points(data.Now,:,:))';
   
   if ishold
     hold off
   end
-  
-  im = data.Imagelist{data.Now};
-  pts = squeeze(data.Points(data.Now,:,:))';
-  
   imh = imshow(im);
   hold on
   
@@ -27,9 +31,9 @@ function ph = visualizeSkeleton(data)
   lh = zeros(size(pa)); % line handler buffer
   for i = 1:length(pa)
     ph{i} = impoint(gca,pts(i,:));
-    setColor(ph{i},colors(i));
+    setColor(ph{i},colorset(i));
     if pa(i) ~= 0
-      lh(i) = plot(pts([pa(i),i],1),pts([pa(i),i],2),colors(i));
+      lh(i) = plot(pts([pa(i),i],1),pts([pa(i),i],2),colorset(i));
       uistack(lh(i),'bottom')
     end
   end
@@ -39,7 +43,7 @@ function ph = visualizeSkeleton(data)
     addNewPositionCallback(ph{i},@(h) update(pa, lh, ph));
   end
   uistack(imh,'bottom')
-  
+
 end
 
 function update(pa, lh, ph)
@@ -69,6 +73,16 @@ function updateLines(lh,pa,pts)
     if pa(i) ~= 0
       set(lh(i), 'XData', pts([pa(i),i],1), 'YData', pts([pa(i),i],2));
     end
+  end
+  
+end
+
+function drawBoxes(data,pa,colorset)
+  
+  for i = 1:length(pa)
+    w = data.x2(i) - data.x1(i);
+    h = data.y2(i) - data.y1(i);
+    rectangle('Position',[data.x1(i),data.y1(i),w,h],'EdgeColor',colorset(i))
   end
   
 end
