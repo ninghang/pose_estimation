@@ -33,7 +33,7 @@ function gui_OpeningFcn(hObject, eventdata, handles, varargin)
   %   camFolder = '/media/Hitachi/ScienceParkNewData/fisheye2';
   clear data ph;
   global data ph;
-  vidFolderIdx = 5;
+  vidFolderIdx = 3;
   camFolder = '/media/Hitachi/ScienceParkNewData/fisheye1';
   data = ScienceParkData(camFolder,vidFolderIdx);
   ph = visualizeSkeleton(data);
@@ -140,7 +140,9 @@ function pushbutton_Check_Callback(hObject, eventdata, handles)
   if data.Now == size(data.Points,1)
     disp('Video all finished. Done.');
     info(data);
-    save(sprintf('%d.mat',vidFolderIdx),'data');
+    time = clock;
+    filename = sprintf('%d_%d%02d%02d%02d%02d.mat',data.VidFolderIdx,time(1),time(2),time(3),time(4),time(5));
+    save(filename,'data')
     return
   else
     % go to the next frame
@@ -153,4 +155,24 @@ end
 function info(data)
   str = sprintf('%d / %d', data.Now, size(data.Points,1));
   disp(str);
+end
+
+
+% --- Executes on button press in pushbutton_skip_all.
+function pushbutton_skip_all_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_skip_all (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+  global data;
+  
+  % remove current frames
+  data.Points(data.Now:end,:,:) = [];
+  data.Imagelist(data.Now:end,:) = [];
+  data.Timestamp(data.Now:end,:) = [];
+  
+  info(data);
+%   ph = visualizeSkeleton(data);
+  
+  return
+  
 end
