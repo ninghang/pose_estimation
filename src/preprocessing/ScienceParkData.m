@@ -26,10 +26,10 @@ classdef ScienceParkData < handle
   methods
     
     % constructor
-    function spd = ScienceParkData(camFolder,vidFolderIdx)
+    function this = ScienceParkData(camFolder,vidFolderIdx)
       
-      spd.CamFolder = camFolder;
-      spd.VidFolderIdx = vidFolderIdx;
+      this.CamFolder = camFolder;
+      this.VidFolderIdx = vidFolderIdx;
       
       % concatenate video path from video idx
       dirlist = dir(fullfile(camFolder, '/*retopic'));
@@ -41,9 +41,9 @@ classdef ScienceParkData < handle
       % load skeleton points
       addpath('/home/ninghang/workspace/mexopencv/cv') % OpenCV xml loader
       skel_pts = FileStorage(fullfile(vidFolder, 'skeletons.yaml'));
-      spd.Points = zeros([size(skel_pts.head_1) length(spd.SkeletonLabels)]);
-      for j = 1:length(spd.SkeletonLabels)
-        spd.Points(:,:,j) = skel_pts.(spd.SkeletonLabels{j});
+      this.Points = zeros([size(skel_pts.head_1) length(this.SkeletonLabels)]);
+      for j = 1:length(this.SkeletonLabels)
+        this.Points(:,:,j) = skel_pts.(this.SkeletonLabels{j});
       end
       
       % load image frame names
@@ -55,50 +55,65 @@ classdef ScienceParkData < handle
       end
       
       % intersection between the skeleton points and image frames
-      [spd.Timestamp,sidx,iidx] = intersect(skel_pts.timestamp,imTimeStamp);
-      spd.Points = spd.Points(sidx,:,:);
-      spd.Imagelist = cell(length(spd.Timestamp),1);
-      for i = 1:length(spd.Timestamp)
-        spd.Imagelist{i} = fullfile(vidFolder,imlist(iidx(i)).name);
+      [this.Timestamp,sidx,iidx] = intersect(skel_pts.timestamp,imTimeStamp);
+      this.Points = this.Points(sidx,:,:);
+      this.Imagelist = cell(length(this.Timestamp),1);
+      for i = 1:length(this.Timestamp)
+        this.Imagelist{i} = fullfile(vidFolder,imlist(iidx(i)).name);
       end
       
       % init action labels as zero matrix
-      spd.ActionID = zeros(length(spd.Imagelist),length(spd.ActionLabels));
+      this.ActionID = zeros(length(this.Imagelist),length(this.ActionLabels));
       
     end
     
-    function append(spd,A)
+    % append new data to the end
+    function append(this,A)
       
-      spd.Points = cat(1,spd.Points,A.Points);
-      spd.Imagelist = cat(1,spd.Imagelist,A.Imagelist);
-      spd.Timestamp = cat(1,spd.Timestamp,A.Timestamp);
-      spd.ActionID = cat(1,spd.ActionID,A.ActionID);
+      this.Points = cat(1,this.Points,A.Points);
+      this.Imagelist = cat(1,this.Imagelist,A.Imagelist);
+      this.Timestamp = cat(1,this.Timestamp,A.Timestamp);
+      this.ActionID = cat(1,this.ActionID,A.ActionID);
       
     end
     
     % select subset by action label
-    function B = selectLabel(spd,label)
+    function selectByLabel(this,label)
       
-      c = strcmp(label,spd.ActionLabels);
+      c = strcmp(label,this.ActionLabels);
       if c == 0
-        disp(spd.ActionLabels);
+        disp(this.ActionLabels);
         error('incorrect action label, recheck.');
       else
-        dataIdx = (spd.ActionID(:,c) == 1);
-        B = spd.selectRow(dataIdx);
+        dataIdx = (this.ActionID(:,c) == 1);
+        this.selectByRow(dataIdx);
       end
       
     end
     
     % select subset by row index
-    function B = selectRow(spd,idx)
-      B = spd;
-      B.Points = spd.Points(idx,:,:);
-      B.Imagelist = spd.Imagelist(idx);
-      B.Timestamp = spd.Timestamp(idx);
-      B.ActionID = spd.ActionID(idx,:);
+    function selectByRow(this,idx)
+      
+      this.Points = this.Points(idx,:,:);
+      this.Imagelist = this.Imagelist(idx);
+      this.Timestamp = this.Timestamp(idx);
+      this.ActionID = this.ActionID(idx,:);
       
     end
+    
+    % clone this instance
+    function new = clone(this)
+      
+      % Instantiate new object of the same class.
+      new = ScienceParkData(this.CamFolder,this.VidFolderIdx);
+      new.Points = this.Points;
+      new.Imagelist = this.Imagelist;
+      new.Timestamp = this.Timestamp;
+      new.ActionID = this.ActionID;
+      
+    end
+    
+    
   end
   
 end
