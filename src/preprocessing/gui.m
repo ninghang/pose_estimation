@@ -33,7 +33,7 @@ function gui_OpeningFcn(hObject, eventdata, handles, varargin)
   %   camFolder = '/media/Hitachi/ScienceParkNewData/fisheye2';
   clear data ph;
   global data ph;
-  vidFolderIdx = 4;
+  vidFolderIdx = 11;
   camFolder = '/media/Hitachi/ScienceParkNewData/fisheye1';
   data = ScienceParkData(camFolder,vidFolderIdx);
   ph = visualizeSkeleton(data);
@@ -70,6 +70,7 @@ function pushbutton_next_Callback(hObject, eventdata, handles)
   data.Points(data.Now+1 : d,:,:) = [];
   data.Imagelist(data.Now+1 : d,:) = [];
   data.Timestamp(data.Now+1 : d,:) = [];
+  data.ActionID(data.Now+1 : d,:) = [];
   if data.Now == size(data.Points,1)
     disp('Video all finished. Done.');
     info(data);

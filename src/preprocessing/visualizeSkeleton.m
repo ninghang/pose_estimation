@@ -2,7 +2,8 @@ function ph = visualizeSkeleton(data)
   
   pa = [0 1 2 2 4 5 2 7 8 3 10 11 3 13 14]; % tree
   colorset = 'rrrbbbgggyyyccc'; % skeleton colors
-  
+%   colorset = 'rrrbbbgggbbbggg'; % skeleton colors
+
   if nargin ~= 1
     error('One input argument expected. [ScienceParkData]');
   end
