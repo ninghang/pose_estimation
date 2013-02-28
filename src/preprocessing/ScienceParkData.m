@@ -26,44 +26,55 @@ classdef ScienceParkData < handle
   methods
     
     % constructor
-    function this = ScienceParkData(camFolder,vidFolderIdx)
+    function this = ScienceParkData(varargin)
       
-      this.CamFolder = camFolder;
-      this.VidFolderIdx = vidFolderIdx;
+      if nargin == 1 || nargin > 2
+        
+        error('incorrect number of input arguments in constructor')
+
+      elseif nargin == 2
+        
+        camFolder = varargin{1};
+        vidFolderIdx = varargin{2};
+        
+        this.CamFolder = camFolder;
+        this.VidFolderIdx = vidFolderIdx;
+        
+        % concatenate video path from video idx
+        dirlist = dir(fullfile(camFolder, '/*retopic'));
+        if isempty(dirlist)
+          error('%s does not exist\n',fullfile(camFolder, '/*retopic'))
+        end
+        vidFolder = fullfile(camFolder,dirlist(vidFolderIdx).name);
+        
+        % load skeleton points
+        addpath('/home/ninghang/workspace/mexopencv/cv') % OpenCV xml loader
+        skel_pts = FileStorage(fullfile(vidFolder, 'skeletons.yaml'));
+        this.Points = zeros([size(skel_pts.head_1) length(this.SkeletonLabels)]);
+        for j = 1:length(this.SkeletonLabels)
+          this.Points(:,:,j) = skel_pts.(this.SkeletonLabels{j});
+        end
+        
+        % load image frame names
+        imlist = dir(fullfile(vidFolder, '*.jpg'));
+        imTimeStamp = zeros(size(imlist));
+        for i = 1 : size(imlist,1)
+          imFile = imlist(i).name;
+          imTimeStamp(i) = str2double(imFile(1:end-4));
+        end
+        
+        % intersection between the skeleton points and image frames
+        [this.Timestamp,sidx,iidx] = intersect(skel_pts.timestamp,imTimeStamp);
+        this.Points = this.Points(sidx,:,:);
+        this.Imagelist = cell(length(this.Timestamp),1);
+        for i = 1:length(this.Timestamp)
+          this.Imagelist{i} = fullfile(vidFolder,imlist(iidx(i)).name);
+        end
+        
+        % init action labels as zero matrix
+        this.ActionID = zeros(length(this.Imagelist),length(this.ActionLabels));
       
-      % concatenate video path from video idx
-      dirlist = dir(fullfile(camFolder, '/*retopic'));
-      if isempty(dirlist)
-        error('%s does not exist\n',fullfile(camFolder, '/*retopic'))
       end
-      vidFolder = fullfile(camFolder,dirlist(vidFolderIdx).name);
-      
-      % load skeleton points
-      addpath('/home/ninghang/workspace/mexopencv/cv') % OpenCV xml loader
-      skel_pts = FileStorage(fullfile(vidFolder, 'skeletons.yaml'));
-      this.Points = zeros([size(skel_pts.head_1) length(this.SkeletonLabels)]);
-      for j = 1:length(this.SkeletonLabels)
-        this.Points(:,:,j) = skel_pts.(this.SkeletonLabels{j});
-      end
-      
-      % load image frame names
-      imlist = dir(fullfile(vidFolder, '*.jpg'));
-      imTimeStamp = zeros(size(imlist));
-      for i = 1 : size(imlist,1)
-        imFile = imlist(i).name;
-        imTimeStamp(i) = str2double(imFile(1:end-4));
-      end
-      
-      % intersection between the skeleton points and image frames
-      [this.Timestamp,sidx,iidx] = intersect(skel_pts.timestamp,imTimeStamp);
-      this.Points = this.Points(sidx,:,:);
-      this.Imagelist = cell(length(this.Timestamp),1);
-      for i = 1:length(this.Timestamp)
-        this.Imagelist{i} = fullfile(vidFolder,imlist(iidx(i)).name);
-      end
-      
-      % init action labels as zero matrix
-      this.ActionID = zeros(length(this.Imagelist),length(this.ActionLabels));
       
     end
     
@@ -74,6 +85,9 @@ classdef ScienceParkData < handle
       this.Imagelist = cat(1,this.Imagelist,A.Imagelist);
       this.Timestamp = cat(1,this.Timestamp,A.Timestamp);
       this.ActionID = cat(1,this.ActionID,A.ActionID);
+      this.VidFolderIdx = 0;
+      
+      this.clean;
       
     end
     
@@ -105,15 +119,41 @@ classdef ScienceParkData < handle
     function new = clone(this)
       
       % Instantiate new object of the same class.
-      new = ScienceParkData(this.CamFolder,this.VidFolderIdx);
+      new = ScienceParkData();
       new.Points = this.Points;
       new.Imagelist = this.Imagelist;
       new.Timestamp = this.Timestamp;
       new.ActionID = this.ActionID;
+      new.CamFolder = this.CamFolder;
+      new.VidFolderIdx = this.VidFolderIdx;
       
     end
     
+    % data info
+    function info(this)
+      
+      disp(this.ActionLabels);
+      disp(sum(this.ActionID));
+      
+    end
     
+    % remove duplicate data
+    function clean(this)
+      
+      len = length(this.Timestamp);
+      [C,IdxA] = unique(this.Timestamp,'rows');
+      this.Imagelist = this.Imagelist(IdxA);
+      this.Points = this.Points(IdxA,:,:);
+      this.Timestamp = C;
+      this.ActionID = this.ActionID(IdxA,:);
+      
+      if len > length(IdxA)
+        fprintf('Removed Duplicate Data: %d -> %d, %d were removed\n',...
+          len, length(IdxA), len - length(IdxA));
+      end
+      
+    end
+
   end
   
 end
