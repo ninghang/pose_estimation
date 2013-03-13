@@ -92,7 +92,7 @@ classdef ScienceParkData < handle
     end
     
     % select subset by action label
-    function selectByLabel(this,label)
+    function dataIdx = selectByLabel(this,label)
       
       c = strcmp(label,this.ActionLabels);
       if c == 0
